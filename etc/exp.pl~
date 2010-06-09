@@ -1,0 +1,10 @@
+#!/usr/bin/perl
+use strict;
+
+use Nimbus::DB;
+
+my $schema = Nimbus::DB->db;
+my $dbh    = $schema->storage->dbh;
+
+warn $schema->resultset('Segment')->resultsource->name;
+warn $schema->resultset('Segment')->resultsource->primary_key;

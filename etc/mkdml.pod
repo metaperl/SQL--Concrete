@@ -1,0 +1,36 @@
+=head1 NAME 
+
+mkdml.pl - generate INSERT and DELETE statements required as DML for bug fixes.
+
+=head1 SYNOPSIS
+
+If we needed to generate this pair of SQL statements:
+
+ # database update
+ insert into segment values ('minamisuna_linux_rsj_starter','Tokyo JP4, RSJ Linux Starter','1','','');
+
+ # database rollback
+ delete segment where segment='minamisuna_linux_rsj_starter';
+
+We could do this:
+
+ my $key   = { segment => 'minamisuna_linux_rsj_starter' };
+ my %val   = ( description => 'Tokyo JP4, RSJ Linux Starter',
+               status => 1, pos => undef, ledger_key => undef };
+ BOTH( segment => $key, %val );
+
+
+The INSERT statements go to one file and the DELETE statements to another.
+
+You will need to edit the subroutine main so that you are generating DML for your
+tables, keys, and values.
+
+=head1 DEPENDENCIES
+
+SQL::Abstract (we already have it with L<DBIx::Class> and SQL::DB. SQL::DB is available on CPAN
+but requires a force install due to a small bug in the build process.
+
+=head1 ACKNOWLEDGEMENTS 
+
+Credits go to L<this discussion|http://perlmonks.org/?node_id=839885>
+

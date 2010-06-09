@@ -1,0 +1,91 @@
+#!/usr/bin/perl
+use strict;
+
+use Nimbus::DB;
+
+use SQL::Abstract;
+use SQL::DB;
+
+my $schema = Nimbus::DB->db;
+my $dbh    = $schema->storage->dbh;
+
+my $abstract = SQL::Abstract->new;
+my $sqldb    = SQL::DB->new;
+
+$sqldb->{sqldb_dbh} = $dbh;
+
+my %fh = map { $_ => IO::File->new("> $_.sql") } qw(DELETE INSERT);
+
+sub SQL {
+    my ( $sql, @bind ) = @_;
+
+    my $concrete = $sqldb->query_as_string( $sql, @bind );
+
+    "$concrete;\n";
+}
+
+sub DELETE {
+    my ( $table, $key ) = @_;
+
+    $fh{DELETE}->print( SQL( $abstract->delete( $table => $key ) ) );
+}
+
+sub INSERT {
+    my ( $table, $key, %vals ) = @_;
+
+    $fh{INSERT}
+      ->print( SQL( $abstract->insert( $table => { %$key, %vals } ) ) );
+}
+
+sub BOTH {
+    my ( $table, $key, %val ) = @_;
+
+    INSERT( $table => $key, %val );
+    DELETE( $table => $key );
+}
+
+my %element = (
+    pub  => 'sregister-legacy',
+    priv => 'sprivatereg-legacy',
+);
+
+my %product = (
+    pub  => 'SRegister',
+    priv => 'SPrivateReg',
+);
+
+my @privacy = qw(pub priv);
+my @segment = qw(com org net info biz us co.uk);
+for my $privacy (@privacy) {
+  for my $segment (@segment) {
+
+        my $element = $element{$privacy};
+
+        my $descr = "$privacy domain name renewal for TLD $segment";
+        my $key   = { promo_id => "dnr_renew:$segment:$privacy" };
+        my %val   = ( description => $descr );
+        BOTH( PROMO => $key, %val );
+
+        %val = (
+            ELEMENT       => $element,
+            DESCRIPTION   => $descr,
+            PRODUCT       => $product{$privacy},
+            PROD_VERSION  => 'legacy',
+            QTY           => 1,
+            DISCOUNT      => 100,
+            DISC_TYPE     => 'ABS',
+            EXPIRE_TYPE   => undef,
+            EXPIRE_DATE   => undef,
+            EXPIRE_CYCLES => undef,
+            GRACE_CYCLES  => undef
+        );
+        BOTH( PROMO_ELEMENT => $key, %val );
+	
+	%val = (ELEMENT => $element, SEGMENT => $segment);
+        BOTH( PROMO_ELEMENT_SEGMENT => $key, %val );
+
+    }
+}
+
+
+
